@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from m3u8_finder import M3U8Finder
+from practical_m3u8_finder import PracticalM3U8Finder
 from config import TELEGRAM_BOT_TOKEN, LOG_LEVEL, LOG_FORMAT, MESSAGES, MAX_REQUESTS_PER_MINUTE
 
 # Cấu hình logging
@@ -14,8 +14,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Khởi tạo M3U8 Finder
-m3u8_finder = M3U8Finder()
+# Khởi tạo Practical M3U8 Finder
+m3u8_finder = PracticalM3U8Finder()
 
 # Rate limiting
 user_requests = defaultdict(list)
@@ -40,7 +40,21 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Xử lý lệnh /help"""
-    await update.message.reply_text(MESSAGES['help'])
+    help_text = (
+        "🤖 **Bot Tìm Link M3U8**\n\n"
+        "📝 **Cách sử dụng:**\n"
+        "• Gửi URL của trang video để tìm link M3U8\n"
+        "• Hỗ trợ nhiều loại trang web streaming\n\n"
+        "⚠️ **Lưu ý:**\n"
+        "• Một số trang web chặn truy cập tự động\n"
+        "• Link M3U8 có thể cần JavaScript để hiển thị\n"
+        "• Bot sẽ hướng dẫn nếu không tìm thấy link\n\n"
+        "🔧 **Giới hạn:**\n"
+        "• Tối đa 10 request/phút\n"
+        "• Chỉ hỗ trợ URL hợp lệ\n\n"
+        "💡 **Mẹo:** Nếu không tìm thấy link, hãy thử mở trang web trên trình duyệt và kiểm tra Network tab."
+    )
+    await update.message.reply_text(help_text)
 
 async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Xử lý URL được gửi từ người dùng"""
@@ -68,19 +82,47 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await processing_message.delete()
         
         if not m3u8_links:
-            await update.message.reply_text(MESSAGES['no_m3u8_found'])
+            # Provide helpful information when no links found
+            helpful_message = (
+                "❌ Không tìm thấy link M3U8 trực tiếp.\n\n"
+                "💡 Lý do có thể:\n"
+                "• Trang web sử dụng JavaScript để tải video động\n"
+                "• Link M3U8 chỉ xuất hiện khi nhấn play\n"
+                "• Trang web có bảo vệ chống bot\n\n"
+                "🔧 Hướng dẫn:\n"
+                "1. Mở trang web trên trình duyệt\n"
+                "2. Nhấn F12 → Network → Play video\n"
+                "3. Tìm file .m3u8 trong danh sách request\n"
+                "4. Copy link M3U8 để sử dụng"
+            )
+            await update.message.reply_text(helpful_message)
             return
         
-        # Tạo thông báo kết quả
-        response = MESSAGES['found_m3u8'].format(len(m3u8_links)) + '\n\n'
+        # Validate links and create response
+        response = f"✅ Tìm thấy {len(m3u8_links)} link M3U8:\n\n"
         
+        valid_count = 0
         for i, link in enumerate(m3u8_links, 1):
-            response += f"{i}. {link}\n"
+            is_valid = m3u8_finder.validate_m3u8_link(link) if i <= 3 else None  # Only validate first 3
+            status = ""
+            if is_valid is True:
+                status = " ✅"
+                valid_count += 1
+            elif is_valid is False:
+                status = " ⚠️"
             
-            # Telegram có giới hạn độ dài tin nhắn
+            response += f"{i}. {link}{status}\n"
+            
+            # Telegram message length limit
             if len(response) > 4000:
                 await update.message.reply_text(response)
                 response = f"Tiếp tục ({i+1}-{len(m3u8_links)}):\n\n"
+        
+        # Add validation summary
+        if valid_count > 0:
+            response += f"\n✅ {valid_count} link đã xác thực thành công"
+        else:
+            response += "\n⚠️ Các link có thể cần xác thực thêm hoặc yêu cầu trình duyệt"
         
         if response.strip():
             await update.message.reply_text(response)
