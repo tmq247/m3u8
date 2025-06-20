@@ -15,7 +15,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Khởi tạo Practical M3U8 Finder
-m3u8_finder = PracticalM3U8Finder()
+m3u8_finder = EnhancedM3U8Finder()
 
 # Rate limiting
 user_requests = defaultdict(list)
