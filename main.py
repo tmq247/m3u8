@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from practical_m3u8_finder import PracticalM3U8Finder
+from enhanced_m3u8_finder import EnhancedM3U8Finder
 from config import TELEGRAM_BOT_TOKEN, LOG_LEVEL, LOG_FORMAT, MESSAGES, MAX_REQUESTS_PER_MINUTE
 
 # Cấu hình logging
