@@ -24,7 +24,7 @@ class BotHandlers:
             await message.reply_text(
                 Messages.START_MESSAGE,
                 parse_mode="markdown",
-                disable_web_page_preview=True
+                link_preview_options=True
             )
             self.logger.info(f"Người dùng {message.from_user.id} đã bắt đầu sử dụng bot")
         except Exception as e:
@@ -36,7 +36,7 @@ class BotHandlers:
             await message.reply_text(
                 Messages.HELP_MESSAGE,
                 parse_mode="markdown",
-                disable_web_page_preview=True
+                link_preview_options=True
             )
             self.logger.info(f"Người dùng {message.from_user.id} đã xem hướng dẫn")
         except Exception as e:
@@ -48,7 +48,7 @@ class BotHandlers:
             await message.reply_text(
                 Messages.SUPPORTED_SITES_MESSAGE,
                 parse_mode="markdown",
-                disable_web_page_preview=True
+                link_preview_options=True
             )
             self.logger.info(f"Người dùng {message.from_user.id} đã xem danh sách trang web được hỗ trợ")
         except Exception as e:
@@ -105,7 +105,7 @@ class BotHandlers:
             await processing_msg.edit_text(
                 result_message,
                 parse_mode="markdown",
-                disable_web_page_preview=True
+                link_preview_options=True
             )
             
             self.logger.info(f"Đã trích xuất thành công {len(stream_links)} link cho người dùng {user_id}")
@@ -136,7 +136,7 @@ Vui lòng:
             await message.reply_text(
                 help_text,
                 parse_mode="markdown",
-                disable_web_page_preview=True
+                link_preview_options=True
             )
             
         except Exception as e:
