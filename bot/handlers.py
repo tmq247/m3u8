@@ -5,6 +5,8 @@ Handlers cho các lệnh và tin nhắn của bot
 """
 
 import logging
+import re
+from typing import List
 from pyrogram import Client
 from pyrogram.types import Message
 from config import Messages
@@ -23,8 +25,8 @@ class BotHandlers:
         try:
             await message.reply_text(
                 Messages.START_MESSAGE,
-                parse_mode=False,
-                link_preview_options=True
+                parse_mode="markdown",
+                disable_web_page_preview=True
             )
             self.logger.info(f"Người dùng {message.from_user.id} đã bắt đầu sử dụng bot")
         except Exception as e:
@@ -35,8 +37,8 @@ class BotHandlers:
         try:
             await message.reply_text(
                 Messages.HELP_MESSAGE,
-                parse_mode=False,
-                link_preview_options=True
+                parse_mode="markdown",
+                disable_web_page_preview=True
             )
             self.logger.info(f"Người dùng {message.from_user.id} đã xem hướng dẫn")
         except Exception as e:
@@ -47,8 +49,8 @@ class BotHandlers:
         try:
             await message.reply_text(
                 Messages.SUPPORTED_SITES_MESSAGE,
-                parse_mode=False,
-                link_preview_options=True
+                parse_mode="markdown",
+                disable_web_page_preview=True
             )
             self.logger.info(f"Người dùng {message.from_user.id} đã xem danh sách trang web được hỗ trợ")
         except Exception as e:
@@ -104,8 +106,8 @@ class BotHandlers:
             # Gửi kết quả
             await processing_msg.edit_text(
                 result_message,
-                parse_mode=False,
-                link_preview_options=True
+                parse_mode="markdown",
+                disable_web_page_preview=True
             )
             
             self.logger.info(f"Đã trích xuất thành công {len(stream_links)} link cho người dùng {user_id}")
@@ -122,22 +124,101 @@ class BotHandlers:
     async def default_handler(self, client: Client, message: Message):
         """Xử lý tin nhắn mặc định"""
         try:
+            # Kiểm tra nếu tin nhắn chứa direct streaming link
+            text = message.text.strip()
+            
+            # Patterns cho direct video links
+            video_patterns = [
+                r'(https?://[^\s]+\.(?:mp4|m3u8|mkv|avi|mov)(?:\?[^\s]*)?)',
+                r'(https?://(?:streamtape|doodstream|mixdrop|upstream|filesupload)\.(?:com|co|org)/[^\s]+)'
+            ]
+            
+            for pattern in video_patterns:
+                matches = re.findall(pattern, text, re.IGNORECASE)
+                if matches:
+                    # Xử lý direct streaming links
+                    await self._handle_direct_stream_links(client, message, matches)
+                    return
+            
             help_text = """
 ❓ **Không hiểu tin nhắn của bạn**
 
 Vui lòng:
 • Gửi link phim từ các trang web được hỗ trợ
+• Gửi trực tiếp link streaming (mp4, m3u8, streamtape, doodstream...)
 • Sử dụng /help để xem hướng dẫn
 • Sử dụng /supported để xem danh sách trang web
 
-**Ví dụ:** Gửi link như `https://tvhay.fm/phim/ten-phim`
+**Ví dụ:** 
+- `https://tvhay.fm/phim/ten-phim`
+- `https://streamtape.com/v/abc123/video.mp4`
 """
             
             await message.reply_text(
                 help_text,
-                parse_mode=False,
-                link_preview_options=True
+                parse_mode="markdown",
+                disable_web_page_preview=True
             )
             
         except Exception as e:
             self.logger.error(f"Lỗi khi xử lý tin nhắn mặc định: {e}")
+    
+    async def _handle_direct_stream_links(self, client: Client, message: Message, links: List[str]):
+        """Xử lý direct streaming links"""
+        try:
+            result_message = "✅ **Đã phát hiện link streaming trực tiếp:**\n\n"
+            
+            for i, link in enumerate(links, 1):
+                # Detect quality and source
+                quality = self._detect_quality_from_url(link)
+                source = self._detect_source_from_url(link)
+                
+                result_message += f"**{i}. {quality} - {source}**\n"
+                result_message += f"`{link}`\n\n"
+            
+            result_message += "💡 **Lưu ý:** Đây là link trực tiếp, có thể phát ngay trên trình phát video."
+            
+            await message.reply_text(
+                result_message,
+                parse_mode="markdown",
+                disable_web_page_preview=True
+            )
+            
+            self.logger.info(f"Đã xử lý {len(links)} direct streaming links cho user {message.from_user.id}")
+            
+        except Exception as e:
+            self.logger.error(f"Lỗi khi xử lý direct streaming links: {e}")
+    
+    def _detect_quality_from_url(self, url: str) -> str:
+        """Phát hiện chất lượng từ URL"""
+        url_lower = url.lower()
+        if any(q in url_lower for q in ['2160p', '4k']):
+            return '4K'
+        elif any(q in url_lower for q in ['1080p', 'fhd']):
+            return '1080p'
+        elif any(q in url_lower for q in ['720p', 'hd']):
+            return '720p'
+        elif any(q in url_lower for q in ['480p', 'sd']):
+            return '480p'
+        elif '360p' in url_lower:
+            return '360p'
+        else:
+            return 'Unknown'
+    
+    def _detect_source_from_url(self, url: str) -> str:
+        """Phát hiện nguồn từ URL"""
+        from urllib.parse import urlparse
+        domain = urlparse(url).netloc.lower()
+        
+        if 'streamtape.com' in domain:
+            return 'StreamTape'
+        elif 'doodstream.com' in domain:
+            return 'DoodStream'
+        elif 'mixdrop.co' in domain:
+            return 'MixDrop'
+        elif 'upstream.to' in domain:
+            return 'Upstream'
+        elif 'filesupload.org' in domain:
+            return 'FilesUpload'
+        else:
+            return 'Direct'
