@@ -48,27 +48,46 @@ class BaseScraper(ABC):
             max_retries = Config.MAX_RETRIES
         
         if not self.session:
+            # Tạo connector với SSL verification disabled cho một số trang web
+            connector = aiohttp.TCPConnector(ssl=False, limit=100, limit_per_host=30)
             self.session = aiohttp.ClientSession(
                 timeout=self.timeout,
-                headers=Config.DEFAULT_HEADERS
+                headers=Config.DEFAULT_HEADERS,
+                connector=connector
             )
         
         for attempt in range(max_retries + 1):
             try:
                 self.logger.info(f"Đang lấy HTML từ: {url} (lần thử {attempt + 1})")
                 
-                async with self.session.get(url) as response:
+                # Thêm delay ngẫu nhiên để tránh bị chặn
+                if attempt > 0:
+                    import random
+                    delay = random.uniform(1, 3)
+                    await asyncio.sleep(delay)
+                
+                async with self.session.get(
+                    url, 
+                    allow_redirects=True,
+                    timeout=aiohttp.ClientTimeout(total=45)
+                ) as response:
                     if response.status == 200:
-                        html = await response.text()
+                        html = await response.text(encoding='utf-8')
                         self.logger.info(f"Lấy HTML thành công từ: {url}")
                         return html
+                    elif response.status in [403, 429]:
+                        self.logger.warning(f"Bị chặn truy cập: HTTP {response.status} từ {url}")
+                        # Tăng delay khi bị chặn
+                        await asyncio.sleep(5 * (attempt + 1))
                     else:
                         self.logger.warning(f"HTTP {response.status} từ {url}")
                         
             except asyncio.TimeoutError:
                 self.logger.warning(f"Timeout khi lấy {url} (lần thử {attempt + 1})")
+            except aiohttp.ClientError as e:
+                self.logger.error(f"Lỗi client khi lấy {url}: {e} (lần thử {attempt + 1})")
             except Exception as e:
-                self.logger.error(f"Lỗi khi lấy {url}: {e} (lần thử {attempt + 1})")
+                self.logger.error(f"Lỗi không xác định khi lấy {url}: {e} (lần thử {attempt + 1})")
             
             if attempt < max_retries:
                 await asyncio.sleep(2 ** attempt)  # Exponential backoff
