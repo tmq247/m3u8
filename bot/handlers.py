@@ -9,6 +9,7 @@ import re
 from typing import List
 from pyrogram import Client
 from pyrogram.types import Message
+from pyrogram.enums import ParseMode
 from config import Messages
 from scrapers.scraper_factory import ScraperFactory
 from utils.validators import is_valid_url, is_supported_site
@@ -25,7 +26,7 @@ class BotHandlers:
         try:
             await message.reply_text(
                 Messages.START_MESSAGE,
-                parse_mode="markdown",
+                parse_mode=ParseMode.MARKDOWN,
                 disable_web_page_preview=True
             )
             self.logger.info(f"Người dùng {message.from_user.id} đã bắt đầu sử dụng bot")
@@ -37,7 +38,7 @@ class BotHandlers:
         try:
             await message.reply_text(
                 Messages.HELP_MESSAGE,
-                parse_mode="markdown",
+                parse_mode=ParseMode.MARKDOWN,
                 disable_web_page_preview=True
             )
             self.logger.info(f"Người dùng {message.from_user.id} đã xem hướng dẫn")
@@ -49,7 +50,7 @@ class BotHandlers:
         try:
             await message.reply_text(
                 Messages.SUPPORTED_SITES_MESSAGE,
-                parse_mode="markdown",
+                parse_mode=ParseMode.MARKDOWN,
                 disable_web_page_preview=True
             )
             self.logger.info(f"Người dùng {message.from_user.id} đã xem danh sách trang web được hỗ trợ")
@@ -106,7 +107,7 @@ class BotHandlers:
             # Gửi kết quả
             await processing_msg.edit_text(
                 result_message,
-                parse_mode="markdown",
+                parse_mode=ParseMode.MARKDOWN,
                 disable_web_page_preview=True
             )
             
@@ -117,7 +118,10 @@ class BotHandlers:
             error_message = Messages.ERROR_MESSAGE.format(error=str(e))
             
             try:
-                await processing_msg.edit_text(error_message)
+                if 'processing_msg' in locals():
+                    await processing_msg.edit_text(error_message)
+                else:
+                    await message.reply_text(error_message)
             except:
                 await message.reply_text(error_message)
     
@@ -156,7 +160,7 @@ Vui lòng:
             
             await message.reply_text(
                 help_text,
-                parse_mode="markdown",
+                parse_mode=ParseMode.MARKDOWN,
                 disable_web_page_preview=True
             )
             
@@ -180,7 +184,7 @@ Vui lòng:
             
             await message.reply_text(
                 result_message,
-                parse_mode="markdown",
+                parse_mode=ParseMode.MARKDOWN,
                 disable_web_page_preview=True
             )
             
