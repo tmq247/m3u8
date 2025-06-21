@@ -24,6 +24,7 @@ class Config:
         "tvhay.fm": "TVHay",
         "phimmoi.net": "PhimMoi",
         "bilutv.com": "BiluTV",
+        "vi.stripchat.com": "test",
         "motphim.com": "MotPhim"
     }
     
