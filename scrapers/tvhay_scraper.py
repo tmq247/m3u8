@@ -6,6 +6,7 @@ Scraper cho trang web tvhay.fm
 
 import re
 import json
+import trafilatura
 from typing import List, Dict
 from urllib.parse import urljoin, urlparse
 from scrapers.base_scraper import BaseScraper
@@ -35,25 +36,26 @@ class TVHayScraper(BaseScraper):
             self.logger.info(f"Bắt đầu trích xuất từ TVHay: {url}")
             
             async with self:
-                # Lấy HTML trang chính
-                html = await self.fetch_html(url)
-                if not html:
-                    return []
+                # Phương pháp 1: Sử dụng trafilatura (ít bị chặn hơn)
+                stream_links = await self._extract_with_trafilatura(url)
                 
-                soup = self.parse_html(html)
-                stream_links = []
-                
-                # Phương pháp 1: Tìm player iframe
-                iframe_links = await self._extract_from_iframes(soup, url)
-                stream_links.extend(iframe_links)
-                
-                # Phương pháp 2: Tìm trong JavaScript
-                js_links = await self._extract_from_javascript(soup, url)
-                stream_links.extend(js_links)
-                
-                # Phương pháp 3: Tìm direct video links
-                direct_links = self._extract_direct_links(soup)
-                stream_links.extend(direct_links)
+                if not stream_links:
+                    # Phương pháp 2: Lấy HTML trực tiếp
+                    html = await self.fetch_html(url)
+                    if html:
+                        soup = self.parse_html(html)
+                        
+                        # Tìm player iframe
+                        iframe_links = await self._extract_from_iframes(soup, url)
+                        stream_links.extend(iframe_links)
+                        
+                        # Tìm trong JavaScript
+                        js_links = await self._extract_from_javascript(soup, url)
+                        stream_links.extend(js_links)
+                        
+                        # Tìm direct video links
+                        direct_links = self._extract_direct_links(soup)
+                        stream_links.extend(direct_links)
                 
                 # Loại bỏ duplicate và sắp xếp theo quality
                 unique_links = self._deduplicate_links(stream_links)
@@ -63,6 +65,73 @@ class TVHayScraper(BaseScraper):
                 
         except Exception as e:
             self.logger.error(f"Lỗi khi trích xuất từ TVHay: {e}")
+            return []
+    
+    async def _extract_with_trafilatura(self, url: str) -> List[Dict[str, str]]:
+        """Sử dụng trafilatura để trích xuất nội dung"""
+        try:
+            self.logger.info(f"Đang sử dụng trafilatura cho: {url}")
+            
+            # Lấy nội dung với trafilatura
+            downloaded = trafilatura.fetch_url(url)
+            if not downloaded:
+                self.logger.warning("Trafilatura không thể tải nội dung")
+                return []
+            
+            # Trích xuất HTML và text
+            extracted_html = trafilatura.extract(downloaded, include_links=True, include_images=True)
+            if not extracted_html:
+                self.logger.warning("Trafilatura không thể trích xuất nội dung")
+                return []
+            
+            # Parse với BeautifulSoup
+            soup = self.parse_html(downloaded)
+            stream_links = []
+            
+            # Tìm các pattern video trong nội dung
+            patterns = [
+                r'(https?://[^\s"\'<>]+\.m3u8[^\s"\'<>]*)',
+                r'(https?://[^\s"\'<>]+\.mp4[^\s"\'<>]*)',
+                r'(https?://[^\s"\'<>]+\.mkv[^\s"\'<>]*)',
+                r'(https?://streamtape\.com/[^\s"\'<>]+)',
+                r'(https?://doodstream\.com/[^\s"\'<>]+)',
+                r'(https?://mixdrop\.co/[^\s"\'<>]+)'
+            ]
+            
+            full_content = downloaded + " " + (extracted_html or "")
+            
+            for pattern in patterns:
+                matches = re.findall(pattern, full_content, re.IGNORECASE)
+                for match in matches:
+                    if self.is_video_url(match):
+                        quality = self._detect_quality(match)
+                        source = self._detect_source(match)
+                        
+                        stream_links.append(self.format_stream_info(
+                            url=match,
+                            quality=quality,
+                            source=source
+                        ))
+            
+            # Tìm iframe sources
+            iframes = soup.find_all('iframe', src=True)
+            for iframe in iframes:
+                src = iframe.get('src')
+                if src and any(host in src for host in ['streamtape', 'doodstream', 'mixdrop', 'upstream', 'filesupload']):
+                    quality = self._detect_quality(src)
+                    source = self._detect_source(src)
+                    
+                    stream_links.append(self.format_stream_info(
+                        url=src,
+                        quality=quality,
+                        source=source
+                    ))
+            
+            self.logger.info(f"Trafilatura tìm thấy {len(stream_links)} links")
+            return stream_links
+            
+        except Exception as e:
+            self.logger.error(f"Lỗi trafilatura: {e}")
             return []
     
     async def _extract_from_iframes(self, soup, base_url: str) -> List[Dict[str, str]]:
