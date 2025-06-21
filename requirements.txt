@@ -4,7 +4,7 @@ tgcrypto==1.2.5
 aiohttp==3.9.1
 beautifulsoup4==4.12.2
 lxml==4.9.3
-python-dotenv==1.0.0
 trafilatura==1.6.4
-urllib3
-trafilatura
+python-dotenv==1.0.0
+requests==2.31.0
+urllib3==2.1.0
