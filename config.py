@@ -1,65 +1,127 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Cấu hình cho bot Telegram
+"""
+
 import os
-import logging
+from typing import Dict, List
 
-# Telegram Bot Configuration
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+class Config:
+    """Lớp cấu hình chính"""
+    
+    # Telegram API Configuration
+    TELEGRAM_API_ID = int(os.getenv("TELEGRAM_API_ID", "0"))
+    TELEGRAM_API_HASH = os.getenv("TELEGRAM_API_HASH", "")
+    TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    
+    # Bot Configuration
+    BOT_NAME = "Stream Link Extractor Bot"
+    BOT_USERNAME = "@streamlinkbot"
+    
+    # Supported websites
+    SUPPORTED_SITES = {
+        "tvhay.fm": "TVHay",
+        "phimmoi.net": "PhimMoi",
+        "bilutv.com": "BiluTV",
+        "motphim.com": "MotPhim"
+    }
+    
+    # Request configuration
+    REQUEST_TIMEOUT = 30
+    MAX_RETRIES = 3
+    
+    # Headers for requests
+    DEFAULT_HEADERS = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'vi-VN,vi;q=0.9,en;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+    }
+    
+    # Logging configuration
+    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+    LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    
+    # Video formats to look for
+    VIDEO_FORMATS = [
+        '.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m3u8'
+    ]
+    
+    # Common video hosting domains
+    VIDEO_HOSTS = [
+        'streamtape.com',
+        'doodstream.com',
+        'mixdrop.co',
+        'upstream.to',
+        'filesupload.org',
+        'streamlare.com',
+        'supervideo.tv'
+    ]
 
-# Logging Configuration
-LOG_LEVEL = logging.INFO
-LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+class Messages:
+    """Các thông điệp của bot"""
+    
+    START_MESSAGE = """
+🎬 **Chào mừng đến với Stream Link Extractor Bot!**
 
-# Request Configuration
-REQUEST_TIMEOUT = 30
-MAX_REQUESTS_PER_MINUTE = 10
-USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+Bot này giúp bạn trích xuất link phát trực tiếp từ các trang web xem phim.
 
-# M3U8 Search Configuration
-M3U8_PATTERNS = [
-    r'https?://[^\s"\'<>]+\.m3u8(?:\?[^\s"\'<>]*)?',
-    r'["\']([^"\']*\.m3u8(?:\?[^"\']*)?)["\']',
-    r'url\s*[:=]\s*["\']([^"\']*\.m3u8(?:\?[^"\']*)?)["\']',
-    r'src\s*=\s*["\']([^"\']*\.m3u8(?:\?[^"\']*)?)["\']',
-    r'playlist\s*[:=]\s*["\']([^"\']*\.m3u8(?:\?[^"\']*)?)["\']',
-    r'source\s*[:=]\s*["\']([^"\']*\.m3u8(?:\?[^"\']*)?)["\']',
-    r'file\s*[:=]\s*["\']([^"\']*\.m3u8(?:\?[^"\']*)?)["\']',
-    r'stream\s*[:=]\s*["\']([^"\']*\.m3u8(?:\?[^"\']*)?)["\']',
-    r'video\s*[:=]\s*["\']([^"\']*\.m3u8(?:\?[^"\']*)?)["\']',
-    r'hlsUrl\s*[:=]\s*["\']([^"\']*\.m3u8(?:\?[^"\']*)?)["\']',
-    r'hls\s*[:=]\s*["\']([^"\']*\.m3u8(?:\?[^"\']*)?)["\']',
-    r'm3u8\s*[:=]\s*["\']([^"\']*\.m3u8(?:\?[^"\']*)?)["\']',
-    r'\\u002F[^\\]*\.m3u8[^\\]*',
-    r'["\'][^"\']*\.m3u8[^"\']*["\']'
-]
+📝 **Cách sử dụng:**
+• Gửi link trang phim bạn muốn xem
+• Bot sẽ tự động trích xuất link phát trực tiếp
+• Nhận link và thưởng thức phim!
 
-# Additional patterns for dynamic content
-DYNAMIC_PATTERNS = [
-    r'data-src\s*=\s*["\']([^"\']*)["\']',
-    r'data-url\s*=\s*["\']([^"\']*)["\']',
-    r'data-stream\s*=\s*["\']([^"\']*)["\']',
-    r'data-video\s*=\s*["\']([^"\']*)["\']'
-]
+🌐 **Các trang web được hỗ trợ:**
+• tvhay.fm
+• phimmoi.net
+• bilutv.com
+• motphim.com
 
-# Network request patterns
-NETWORK_ENDPOINTS = [
-    '/api/stream',
-    '/api/video',
-    '/api/live',
-    '/stream',
-    '/video',
-    '/live',
-    '/hls',
-    '/m3u8',
-    '/playlist'
-]
+⚡ **Lệnh có sẵn:**
+/start - Bắt đầu sử dụng bot
+/help - Xem hướng dẫn
+/supported - Danh sách trang web được hỗ trợ
+"""
 
-# Messages in Vietnamese
-MESSAGES = {
-    'start': '🤖 Chào mừng bạn đến với M3U8 Finder Bot!\n\nGửi cho tôi một URL và tôi sẽ tìm kiếm các link m3u8 trong trang web đó.',
-    'help': '📋 Hướng dẫn sử dụng:\n\n1. Gửi một URL hợp lệ\n2. Bot sẽ phân tích trang web\n3. Trả về danh sách các link m3u8 tìm được\n\n⚠️ Lưu ý: Chỉ gửi tối đa 10 request mỗi phút',
-    'invalid_url': '❌ URL không hợp lệ. Vui lòng gửi một URL đầy đủ (bắt đầu với http:// hoặc https://)',
-    'no_m3u8_found': '😔 Không tìm thấy link m3u8 nào trong trang web này.',
-    'error_fetching': '❌ Lỗi khi truy cập trang web: {}',
-    'rate_limit': '⏳ Bạn đã gửi quá nhiều request. Vui lòng chờ một chút.',
-    'found_m3u8': '✅ Đã tìm thấy {} link m3u8:',
-    'processing': '🔍 Đang phân tích trang web...'
-}
+    HELP_MESSAGE = """
+📚 **Hướng dẫn sử dụng bot:**
+
+1️⃣ **Gửi link phim:**
+   Chỉ cần gửi link từ các trang web được hỗ trợ
+
+2️⃣ **Nhận link phát trực tiếp:**
+   Bot sẽ trích xuất và gửi link video cho bạn
+
+3️⃣ **Xem phim:**
+   Sử dụng link để xem phim trên trình phát yêu thích
+
+⚠️ **Lưu ý:**
+• Chỉ hoạt động với các trang web được hỗ trợ
+• Một số link có thể yêu cầu VPN
+• Link có thể hết hạn sau một thời gian
+"""
+
+    SUPPORTED_SITES_MESSAGE = """
+🌐 **Các trang web được hỗ trợ:**
+
+✅ **tvhay.fm** - Phim hay chất lượng cao
+✅ **phimmoi.net** - Phim mới cập nhật
+✅ **bilutv.com** - Phim bộ Hàn Quốc
+✅ **motphim.com** - Phim lẻ và phim bộ
+
+🔄 **Đang phát triển thêm:**
+• Nhiều trang web khác sẽ được bổ sung
+
+💡 **Đề xuất trang web:**
+Nếu bạn muốn bot hỗ trợ thêm trang web nào, hãy liên hệ admin!
+"""
+
+    PROCESSING_MESSAGE = "🔄 Đang xử lý link của bạn..."
+    SUCCESS_MESSAGE = "✅ **Đã tìm thấy link phát trực tiếp:**"
+    ERROR_MESSAGE = "❌ **Lỗi:** {error}"
+    UNSUPPORTED_SITE_MESSAGE = "❌ Trang web này chưa được hỗ trợ. Sử dụng /supported để xem danh sách trang web được hỗ trợ."
+    INVALID_URL_MESSAGE = "❌ Link không hợp lệ. Vui lòng gửi một URL đúng định dạng."
+    NO_STREAM_FOUND_MESSAGE = "❌ Không tìm thấy link phát trực tiếp từ trang này."
