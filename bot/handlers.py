@@ -23,7 +23,7 @@ class BotHandlers:
         try:
             await message.reply_text(
                 Messages.START_MESSAGE,
-                parse_mode="markdown",
+                parse_mode=False,
                 link_preview_options=True
             )
             self.logger.info(f"Người dùng {message.from_user.id} đã bắt đầu sử dụng bot")
@@ -35,7 +35,7 @@ class BotHandlers:
         try:
             await message.reply_text(
                 Messages.HELP_MESSAGE,
-                parse_mode="markdown",
+                parse_mode=False,
                 link_preview_options=True
             )
             self.logger.info(f"Người dùng {message.from_user.id} đã xem hướng dẫn")
@@ -47,7 +47,7 @@ class BotHandlers:
         try:
             await message.reply_text(
                 Messages.SUPPORTED_SITES_MESSAGE,
-                parse_mode="markdown",
+                parse_mode=False,
                 link_preview_options=True
             )
             self.logger.info(f"Người dùng {message.from_user.id} đã xem danh sách trang web được hỗ trợ")
@@ -104,7 +104,7 @@ class BotHandlers:
             # Gửi kết quả
             await processing_msg.edit_text(
                 result_message,
-                parse_mode="markdown",
+                parse_mode=False,
                 link_preview_options=True
             )
             
@@ -135,7 +135,7 @@ Vui lòng:
             
             await message.reply_text(
                 help_text,
-                parse_mode="markdown",
+                parse_mode=False,
                 link_preview_options=True
             )
             
